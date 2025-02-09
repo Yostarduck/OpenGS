@@ -5,6 +5,7 @@ project(OpenGS VERSION 1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# SDL options
 set(SDL_SHARED ON)
 set(SDL_STATIC OFF)
 set(SDL_TEST_LIBRARY OFF)
@@ -14,6 +15,17 @@ set(SDL_INSTALL_TESTS OFF)
 set(SDL_TESTS_LINK_SHARED OFF)
 
 set(SDL_EXAMPLES OFF)
+
+#FreeImage options
+set(BUILD_SHARED_LIBS ON)
+set(BUILD_JXR ON)
+set(BUILD_TESTS OFF)
+set(BUILD_ZLIB ON)
+set(BUILD_LIBPNG ON)
+set(BUILD_LIBTIFF ON)
+set(BUILD_WEBP ON)
+set(BUILD_LIBRAWLITE OFF)
+set(BUILD_OPENEXR OFF)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(ARCH_DIR "x64")
@@ -33,5 +45,6 @@ foreach(OUTPUTCONFIG Debug Release RelWithDebInfo MinSizeRel)
 endforeach()
 
 add_subdirectory(SDL)
+add_subdirectory(FreeImage)
 add_subdirectory(FMath)
 add_subdirectory(App)
