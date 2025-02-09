@@ -19,5 +19,5 @@ echo Selected Build Type: %BUILD_TYPE%
 
 rm -rf Build
 
-cmake -B build -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
-cmake --build build --config %BUILD_TYPE%
+cmake -B Build -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
+cmake --build Build --config %BUILD_TYPE%
