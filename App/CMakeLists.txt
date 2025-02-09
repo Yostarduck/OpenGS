@@ -8,10 +8,11 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AppConfig.h.in
 
 add_executable(App main.cpp)
 
-target_link_libraries(App PRIVATE FMath)
+target_link_libraries(App PRIVATE FMath SDL3::SDL3)
 
 target_include_directories(App PRIVATE
                            ${CMAKE_SOURCE_DIR}/FMath
+                           ${CMAKE_SOURCE_DIR}/SDL/include/SDL3
                            ${CMAKE_CURRENT_BINARY_DIR}
                           )
 

@@ -1,3 +1,6 @@
 [submodule "SDL"]
 	path = SDL
 	url = git@github.com:libsdl-org/SDL.git
+[submodule "FreeImage"]
+	path = FreeImage
+	url = git@github.com:danoli3/FreeImage.git
