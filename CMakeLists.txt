@@ -5,17 +5,6 @@ project(OpenGS VERSION 1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-#FreeImage options
-set(BUILD_SHARED_LIBS ON)  # Build shared libraries
-set(BUILD_JXR WIN32)       # Build JPEG-XR support
-set(BUILD_TESTS OFF)       # Build the test suite
-set(BUILD_ZLIB ON)        # Build zlib from source or link
-set(BUILD_LIBPNG ON)      # Build libpng from source or link
-set(BUILD_LIBTIFF ON)     # Build libTIFF from source or link
-set(BUILD_WEBP ON)        # Build webp from source or link
-set(BUILD_LIBRAWLITE ON)  # Build librawlite from source or link
-set(BUILD_OPENEXR ON)     # Build OpenEXR from source or link
-
 # SDL options
 set(SDL_SHARED ON)
 set(SDL_STATIC OFF)
@@ -44,7 +33,6 @@ foreach(OUTPUTCONFIG Debug Release RelWithDebInfo MinSizeRel)
     endforeach()
 endforeach()
 
-add_subdirectory(FreeImage)
 add_subdirectory(SDL)
 add_subdirectory(FMath)
 add_subdirectory(App)
