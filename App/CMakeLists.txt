@@ -11,6 +11,7 @@ add_executable(App main.cpp)
 target_link_libraries(App PRIVATE SDL3::SDL3 FMath)
 
 target_include_directories(App PRIVATE
+                           ${CMAKE_SOURCE_DIR}/sail/src
                            ${CMAKE_SOURCE_DIR}/SDL/include/SDL3
                            ${CMAKE_SOURCE_DIR}/FMath
                            ${CMAKE_CURRENT_BINARY_DIR}
