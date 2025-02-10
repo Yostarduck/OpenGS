@@ -5,6 +5,17 @@ project(OpenGS VERSION 1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+#FreeImage options
+set(BUILD_SHARED_LIBS ON)  # Build shared libraries
+set(BUILD_JXR WIN32)       # Build JPEG-XR support
+set(BUILD_TESTS OFF)       # Build the test suite
+set(BUILD_ZLIB ON)        # Build zlib from source or link
+set(BUILD_LIBPNG ON)      # Build libpng from source or link
+set(BUILD_LIBTIFF ON)     # Build libTIFF from source or link
+set(BUILD_WEBP ON)        # Build webp from source or link
+set(BUILD_LIBRAWLITE ON)  # Build librawlite from source or link
+set(BUILD_OPENEXR ON)     # Build OpenEXR from source or link
+
 # SDL options
 set(SDL_SHARED ON)
 set(SDL_STATIC OFF)
@@ -15,17 +26,6 @@ set(SDL_INSTALL_TESTS OFF)
 set(SDL_TESTS_LINK_SHARED OFF)
 
 set(SDL_EXAMPLES OFF)
-
-#FreeImage options
-set(BUILD_SHARED_LIBS ON)
-set(BUILD_JXR ON)
-set(BUILD_TESTS OFF)
-set(BUILD_ZLIB ON)
-set(BUILD_LIBPNG ON)
-set(BUILD_LIBTIFF ON)
-set(BUILD_WEBP ON)
-set(BUILD_LIBRAWLITE OFF)
-set(BUILD_OPENEXR OFF)
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(ARCH_DIR "x64")
@@ -44,7 +44,7 @@ foreach(OUTPUTCONFIG Debug Release RelWithDebInfo MinSizeRel)
     endforeach()
 endforeach()
 
-add_subdirectory(SDL)
 add_subdirectory(FreeImage)
+add_subdirectory(SDL)
 add_subdirectory(FMath)
 add_subdirectory(App)
