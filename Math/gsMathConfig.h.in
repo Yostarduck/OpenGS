@@ -1,0 +1,19 @@
+#define MATH_VERSION_MAJOR @MATH_VERSION_MAJOR@
+#define MATH_VERSION_MINOR @MATH_VERSION_MINOR@
+
+#cmakedefine BUILDING_MATH_SHARED
+
+#define USE_CUSTOM_MATH 0
+#define USE_STD_MATH 1
+
+#define MATH_IMPLEMENTATION USE_CUSTOM_MATH
+
+#ifdef _WIN32
+    #ifdef BUILDING_MATH_SHARED
+        #define MATH_API __declspec(dllexport)  // Export when building
+    #else
+        #define MATH_API __declspec(dllimport)  // Import when using
+    #endif
+#else
+    #define MATH_API  // Empty for non-Windows platforms
+#endif

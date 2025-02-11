@@ -46,5 +46,6 @@ endforeach()
 
 add_subdirectory(SAIL)
 add_subdirectory(SDL)
-add_subdirectory(FMath)
+add_subdirectory(Math)
+add_subdirectory(Graphics)
 add_subdirectory(App)

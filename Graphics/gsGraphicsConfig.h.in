@@ -1,0 +1,14 @@
+#define GRAPHICS_VERSION_MAJOR @GRAPHICS_VERSION_MAJOR@
+#define GRAPHICS_VERSION_MINOR @GRAPHICS_VERSION_MINOR@
+
+#cmakedefine BUILDING_GRAPHICS_SHARED
+
+#ifdef _WIN32
+    #ifdef BUILDING_GRAPHICS_SHARED
+        #define GRAPHICS_API __declspec(dllexport)  // Export when building
+    #else
+        #define GRAPHICS_API __declspec(dllimport)  // Import when using
+    #endif
+#else
+    #define GRAPHICS_API  // Empty for non-Windows platforms
+#endif
