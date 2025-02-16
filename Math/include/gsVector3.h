@@ -67,6 +67,20 @@ class MATH_API Vector3
   float x;
   float y;
   float z;
+  
+#pragma region CONSTANTS
+
+  static const Vector3 Zero;
+  static const Vector3 One;
+
+  static const Vector3 Up;
+  static const Vector3 Down;
+  static const Vector3 Left;
+  static const Vector3 Right;
+  static const Vector3 Forward;
+  static const Vector3 Backward;
+
+#pragma endregion
 };
 
 }

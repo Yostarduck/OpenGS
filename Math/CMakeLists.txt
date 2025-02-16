@@ -8,15 +8,13 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/gsMathConfig.h.in
 
 add_library(Math SHARED
             source/gsMath.cpp
-            source/gsVector3.cpp
-           )
+            source/gsVector3.cpp)
 
 add_library(OpenGS::Math ALIAS Math)
 
 target_include_directories(Math PUBLIC
                            ${CMAKE_CURRENT_SOURCE_DIR}/include
-                           ${CMAKE_CURRENT_BINARY_DIR}/include
-                          )
+                           ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 target_compile_definitions(Math PRIVATE BUILDING_MATH_SHARED)
 

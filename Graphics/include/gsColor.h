@@ -90,6 +90,8 @@ class GRAPHICS_API Color
     float channels[4];
   };
 
+#pragma region CONSTANTS
+
   static const Color WHITE;
   static const Color BLACK;
 
@@ -109,6 +111,8 @@ class GRAPHICS_API Color
   static const Color LIGHT_GRAY;
 
   static const Color CLEAR;
+
+#pragma endregion
 };
 
 }

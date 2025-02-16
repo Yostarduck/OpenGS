@@ -22,13 +22,13 @@ class GRAPHICS_API Triangle
 #pragma endregion
 
   const Vertex*
-  getVertex1();
+  getVertex1() const;
 
   const Vertex*
-  getVertex2();
+  getVertex2() const;
 
   const Vertex*
-  getVertex3();
+  getVertex3() const;
   
   Vector3
   getNormal() const;

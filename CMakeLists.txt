@@ -37,3 +37,13 @@ add_subdirectory(SDL)
 add_subdirectory(Math)
 add_subdirectory(Graphics)
 add_subdirectory(App)
+
+# Assets operations
+set(ASSETS_SOURCE_DIR ${CMAKE_SOURCE_DIR}/Assets)
+set(ASSETS_DEST_DIR ${CMAKE_BINARY_DIR}/${ARCH_DIR}/$<CONFIG>/Assets)
+
+add_custom_target(copy_assets ALL
+                  COMMAND ${CMAKE_COMMAND} -E copy_directory ${ASSETS_SOURCE_DIR} ${ASSETS_DEST_DIR}
+                  COMMENT "Copying assets to output directory")
+
+add_dependencies(App copy_assets)

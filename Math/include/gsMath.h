@@ -1,12 +1,12 @@
 #pragma once
 
-#undef max
-#undef min
-
 #include "gsMathConfig.h"
 #include "gsTypes.h"
 
 #include <cmath>
+
+#undef max
+#undef min
 
 namespace opengs
 {
@@ -34,6 +34,28 @@ struct MATH_API Math
 
   static const float EPSILON;
   static const float SMALL_NUMBER;
+
+  //////////////////////////////
+  // Limits
+  //////////////////////////////
+
+  static const float MAX_FLOAT;
+  static const float MIN_FLOAT;
+  static const float MIN_POSITIVE_FLOAT;
+
+  static const int64  MAX_INT64;
+  static const int64  MIN_INT64;
+  static const int32  MAX_INT32;
+  static const int32  MIN_INT32;
+  static const int16  MAX_INT16;
+  static const int16  MIN_INT16;
+  static const int8   MAX_INT8;
+  static const int8   MIN_INT8;
+
+  static const uint64 MAX_UINT64;
+  static const uint32 MAX_UINT32;
+  static const uint16 MAX_UINT16;
+  static const uint8  MAX_UINT8;
 
   //////////////////////////////
   // Math functions
@@ -166,7 +188,7 @@ struct MATH_API Math
   template<class T>
   static T
   lerp(const T a, const T b, const float proportion) {
-    return ((1.0f - proportion) * a) + (proportion * b);
+    return (a * (1.0f - proportion)) + (b * proportion);
   }
 
   template<class T>

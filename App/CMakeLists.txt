@@ -4,9 +4,11 @@ set(APP_VERSION_MAJOR 1)
 set(APP_VERSION_MINOR 0)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AppConfig.h.in
-               ${CMAKE_CURRENT_BINARY_DIR}/AppConfig.h)
+               ${CMAKE_CURRENT_BINARY_DIR}/include/AppConfig.h)
 
-add_executable(App source/main.cpp)
+add_executable(App
+               source/main.cpp
+               source/Image.cpp)
 
 target_link_libraries(App PRIVATE
                       SDL3::SDL3
@@ -17,6 +19,9 @@ target_include_directories(App PRIVATE
                            ${CMAKE_SOURCE_DIR}/SDL/include/SDL3
                            ${CMAKE_SOURCE_DIR}/Math/include
                            ${CMAKE_SOURCE_DIR}/Graphics/include
-                           ${CMAKE_CURRENT_BINARY_DIR})
+                           ${CMAKE_SOURCE_DIR}/App/include
+                           ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 target_compile_definitions(App PRIVATE APP_USES_SHARED_MATH APP_USES_SHARED_GRAPHICS)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/AppConfig.h DESTINATION include)

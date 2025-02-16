@@ -23,17 +23,17 @@ Triangle::~Triangle() {
 #pragma endregion
 
 const Vertex*
-Triangle::getVertex1() {
+Triangle::getVertex1() const {
   return m_v1;
 }
 
 const Vertex*
-Triangle::getVertex2() {
+Triangle::getVertex2() const {
   return m_v2;
 }
 
 const Vertex*
-Triangle::getVertex3() {
+Triangle::getVertex3() const {
   return m_v3;
 }
 
