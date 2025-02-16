@@ -6,7 +6,7 @@ set(APP_VERSION_MINOR 0)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AppConfig.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/AppConfig.h)
 
-add_executable(App main.cpp)
+add_executable(App source/main.cpp)
 
 target_link_libraries(App PRIVATE
                       SDL3::SDL3
