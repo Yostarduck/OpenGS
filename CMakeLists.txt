@@ -5,17 +5,6 @@ project(OpenGS VERSION 1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# SAIL options
-set(SAIL_BUILD_APPS OFF)
-set(SAIL_BUILD_BINDINGS ON)
-set(SAIL_BUILD_EXAMPLES OFF)
-set(SAIL_DEV OFF)
-set(SAIL_ENABLE_OPENMP ON)
-set(SAIL_INSTALL_PDB ON)
-set(BUILD_SHARED_LIBS ON)
-set(SAIL_THIRD_PARTY_CODECS_PATH ON)
-set(SAIL_THREAD_SAFE ON)
-
 # SDL options
 set(SDL_SHARED ON)
 set(SDL_STATIC OFF)
@@ -44,7 +33,6 @@ foreach(OUTPUTCONFIG Debug Release RelWithDebInfo MinSizeRel)
     endforeach()
 endforeach()
 
-add_subdirectory(SAIL)
 add_subdirectory(SDL)
 add_subdirectory(Math)
 add_subdirectory(Graphics)

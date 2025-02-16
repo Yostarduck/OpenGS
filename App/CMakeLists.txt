@@ -14,7 +14,6 @@ target_link_libraries(App PRIVATE
                       OpenGS::Graphics)
 
 target_include_directories(App PRIVATE
-                           ${CMAKE_SOURCE_DIR}/sail/src
                            ${CMAKE_SOURCE_DIR}/SDL/include/SDL3
                            ${CMAKE_SOURCE_DIR}/Math/include
                            ${CMAKE_SOURCE_DIR}/Graphics/include
