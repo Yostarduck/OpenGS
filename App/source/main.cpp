@@ -1,10 +1,11 @@
 #define SDL_MAIN_USE_CALLBACKS 1
-#define WINDDOW_WIDTH 1280
+#define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
 
 #include <iostream>
 #include <string>
 #include <vector>
+#include <type_traits>
 
 #include <SDL.h>
 #include <SDL_main.h>
@@ -36,6 +37,15 @@ static std::vector<opengs::Vertex>   vertices;
 
 void
 DrawTriangle(opengs::Triangle* triangle, opengs::Image* image);
+
+opengs::Vertex
+rotateVertex(const opengs::Vertex& v, 
+             float angleX, 
+             float angleY, 
+             float angleZ, 
+             float cx, 
+             float cy, 
+             float cz);
 
 #pragma endregion
 
@@ -155,6 +165,49 @@ DrawTriangle(const opengs::Triangle* triangle, opengs::Image* image) {
   }
 }
 
+opengs::Vertex
+rotateVertex(const opengs::Vertex& v, 
+             float angleX, 
+             float angleY, 
+             float angleZ, 
+             float cx, 
+             float cy, 
+             float cz) {
+  using namespace opengs;
+  opengs::Vertex result = v;
+  
+  result.x -= cx;
+  result.y -= cy;
+  result.z -= cz;
+
+  float cosX = Math::cos(angleX);
+  float sinX = Math::sin(angleX);
+  float y = result.y * cosX - result.z * sinX;
+  float z = result.y * sinX + result.z * cosX;
+  result.y = y;
+  result.z = z;
+
+  float cosY = Math::cos(angleY);
+  float sinY = Math::sin(angleY);
+  float x = result.x * cosY + result.z * sinY;
+  z = -result.x * sinY + result.z * cosY;
+  result.x = x;
+  result.z = z;
+
+  float cosZ = Math::cos(angleZ);
+  float sinZ = Math::sin(angleZ);
+  x = result.x * cosZ - result.y * sinZ;
+  y = result.x * sinZ + result.y * cosZ;
+  result.x = x;
+  result.y = y;
+  
+  result.x += cx;
+  result.y += cy;
+  result.z += cz;
+
+  return result;
+}
+
 #pragma endregion
 
 #pragma region SDL_FUNCTIONS
@@ -179,7 +232,7 @@ SDL_AppInit(void **appstate, int argc, char *argv[]) {
     return SDL_APP_FAILURE;
   }
 
-  if (!SDL_CreateWindowAndRenderer(APP_NAME, WINDDOW_WIDTH, WINDOW_HEIGHT, 0, &window, &renderer)) {
+  if (!SDL_CreateWindowAndRenderer(APP_NAME, WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window, &renderer)) {
     std::cout << "Couldn't create window/renderer: " << SDL_GetError() << std::endl;
     return SDL_APP_FAILURE;
   }
@@ -187,10 +240,15 @@ SDL_AppInit(void **appstate, int argc, char *argv[]) {
   texture = SDL_CreateTexture(renderer,
                               SDL_PIXELFORMAT_RGBA128_FLOAT,
                               SDL_TEXTUREACCESS_STREAMING,
-                              WINDDOW_WIDTH,
+                              WINDOW_WIDTH,
                               WINDOW_HEIGHT);
+  
+  if (!texture) {
+    std::cout << "Couldn't create streaming texture: " << SDL_GetError() << std::endl;
+    return SDL_APP_FAILURE;
+  }
 
-  screenImage   = new opengs::Image(WINDDOW_WIDTH, WINDOW_HEIGHT);
+  screenImage   = new opengs::Image(WINDOW_WIDTH, WINDOW_HEIGHT);
   CubeFaceFront = new opengs::Image();
   CubeFaceLeft  = new opengs::Image();
   CubeFaceTop   = new opengs::Image();
@@ -231,6 +289,12 @@ SDL_AppEvent(void *appstate, SDL_Event *event) {
     return SDL_APP_SUCCESS;
   }
 
+  if (event->type == SDL_EVENT_KEY_DOWN) {
+    if (event->key.which == SDLK_ESCAPE) {
+      return SDL_APP_SUCCESS;
+    }
+  }
+
   return SDL_APP_CONTINUE;
 }
 
@@ -242,36 +306,39 @@ SDL_AppIterate(void *appstate) {
   const float green = (float) (0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 2 / 3));
   const float blue  = (float) (0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 4 / 3));
   
-  for (int y = 0; y < WINDOW_HEIGHT; y++) {
-    for (int x = 0; x < WINDDOW_WIDTH; x++) {
-      screenImage->setPixel(x, y, opengs::Color(red, green, blue));
-    }
-  }
-  
-  for (const opengs::Triangle& triangle : triangles) {
-    DrawTriangle(&triangle, screenImage);
-  }
-  
   SDL_SetRenderDrawColorFloat(renderer, 0.0f, 0.0f, 0.0f, SDL_ALPHA_OPAQUE_FLOAT);
   SDL_RenderClear(renderer);
+  
+  screenImage->clear(opengs::Color(red, green, blue, 1.0f));
+  
+  for (const opengs::Triangle& triangle : triangles) {
+    opengs::Vertex rotatedVertices[3]
+    {
+      rotateVertex(*triangle.getVertex1(), now, now, now, 640.0f, 360.0f, 0.0f),
+      rotateVertex(*triangle.getVertex2(), now, now, now, 640.0f, 360.0f, 0.0f),
+      rotateVertex(*triangle.getVertex3(), now, now, now, 640.0f, 360.0f, 0.0f)
+    };
 
-  SDL_Surface* imgSurface = SDL_CreateSurfaceFrom(screenImage->getWidth(),
-                                                  screenImage->getHeight(),
-                                                  SDL_PIXELFORMAT_RGBA128_FLOAT,
-                                                  screenImage->getPixels(),
-                                                  screenImage->getWidth() * sizeof(opengs::Color));
+    const opengs::Triangle roatedTriangle(&rotatedVertices[0],
+                                          &rotatedVertices[1],
+                                          &rotatedVertices[2]);
 
-  SDL_Surface* surface = nullptr;
-  if (SDL_LockTextureToSurface(texture, nullptr, &surface)) {
-    SDL_BlitSurface(imgSurface, nullptr, surface, nullptr);
-    
-    SDL_UnlockTexture(texture);
+    DrawTriangle(&roatedTriangle, screenImage);
   }
 
-  SDL_DestroySurface(imgSurface);
+  void* texturePixels = nullptr;
+  opengs::int32 pitch = 0;
+  if (SDL_LockTexture(texture, NULL, &texturePixels, &pitch)) {
+    const opengs::Color* source = screenImage->getPixels();
+    opengs::Color* target = reinterpret_cast<opengs::Color*>(texturePixels);
 
-  SDL_FRect dstRect = { 0, 0, WINDDOW_WIDTH, WINDOW_HEIGHT };
-  SDL_RenderTexture(renderer, texture, nullptr, &dstRect);
+    for (opengs::int32 i = 0; i < WINDOW_WIDTH * WINDOW_HEIGHT; i++)
+      target[i] = source[i];
+
+    SDL_UnlockTexture(texture);
+  }
+  
+  SDL_RenderTexture(renderer, texture, nullptr, nullptr);
   
   SDL_RenderPresent(renderer);
   

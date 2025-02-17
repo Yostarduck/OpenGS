@@ -9,7 +9,7 @@ namespace opengs
 #pragma region CONSTRUCTORS
 
 Image::Image()
- : m_width(0), m_height(0), m_pixels(nullptr) {
+ : m_width(0), m_height(0) {
 }
 
 Image::Image(const Image& image) {
@@ -19,7 +19,7 @@ Image::Image(const Image& image) {
   if (m_width * m_height <= 0)
     return;
 
-  m_pixels = new Color[m_width * m_height];
+  m_pixels.resize(m_width * m_height);
 
   for (uint32 i = 0; i < m_width * m_height; i++) {
     m_pixels[i] = image.m_pixels[i];
@@ -35,15 +35,15 @@ Image::Image(const uint32 width,
   if (m_width * m_height <= 0)
     return;
 
-  m_pixels = new Color[m_width * m_height];
+  m_pixels.resize(m_width * m_height);
 
   for (uint32 i = 0; i < m_width * m_height; i++)
     m_pixels[i] = color;
 }
 
 Image::~Image() {
-  if (m_pixels != nullptr)
-    delete[] m_pixels;
+  if (!m_pixels.empty())
+    m_pixels.clear();
 }
 
 #pragma endregion
@@ -55,13 +55,13 @@ Image::operator=(const Image& image) {
   m_width = image.m_width;
   m_height = image.m_height;
 
-  if (m_pixels != nullptr)
-    delete[] m_pixels;
+  if (!m_pixels.empty())
+    m_pixels.clear();
 
   if (m_width * m_height <= 0)
     return *this;
 
-  m_pixels = new Color[m_width * m_height];
+  m_pixels.resize(m_width * m_height);
 
   for (uint32 i = 0; i < m_width * m_height; i++)
     m_pixels[i] = image.m_pixels[i];
@@ -75,7 +75,7 @@ Image::operator=(const Image& image) {
 
 void
 Image::clear(const Color& color) {
-  for (uint32 i = 0; i < m_width * m_height; i++)
+  for (uint32 i = 0; i < m_pixels.size(); i++)
     m_pixels[i] = color;
 }
 
@@ -111,9 +111,9 @@ Image::getHeight() const {
   return m_height;
 }
 
-Color*
+const Color*
 Image::getPixels() const {
-  return m_pixels;
+  return m_pixels.data();
 }
 
 int32
@@ -142,8 +142,8 @@ Image::load(const char* filename) {
     return -4;
   }
   
-  if (m_pixels != nullptr)
-  delete[] m_pixels;
+  if (!m_pixels.empty())
+    m_pixels.clear();
   
   const uint32 bitsPerPixel = info.bitCount;
   const uint32 bytesPerPixel = bitsPerPixel / 8;
@@ -151,7 +151,7 @@ Image::load(const char* filename) {
   
   m_width = info.width;
   m_height = info.height;
-  m_pixels = new Color[size];
+  m_pixels.resize(size);
   
   uint32 columns = ((m_width * bytesPerPixel) + 3) & ~3;
   uint32 rows = m_height;

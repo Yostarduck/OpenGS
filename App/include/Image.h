@@ -2,6 +2,8 @@
 
 #include "AppConfig.h"
 
+#include <vector>
+
 #include <gsTypes.h>
 #include <gsColor.h>
 
@@ -90,7 +92,7 @@ class Image
   uint32
   getHeight() const;
 
-  Color*
+  const Color*
   getPixels() const;
 
 #pragma endregion
@@ -98,7 +100,7 @@ class Image
  private:
   uint32 m_width;
   uint32 m_height;
-  Color* m_pixels;
+  std::vector<Color> m_pixels;
 };
 
 }
