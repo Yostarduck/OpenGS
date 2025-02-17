@@ -39,12 +39,12 @@ void
 DrawTriangle(opengs::Triangle* triangle, opengs::Image* image);
 
 opengs::Vertex
-rotateVertex(const opengs::Vertex& v, 
-             float angleX, 
-             float angleY, 
-             float angleZ, 
-             float cx, 
-             float cy, 
+rotateVertex(const opengs::Vertex& v,
+             float angleX,
+             float angleY,
+             float angleZ,
+             float cx,
+             float cy,
              float cz);
 
 #pragma endregion
@@ -73,18 +73,18 @@ DrawTriangle(const opengs::Triangle* triangle, opengs::Image* image) {
 
   if (triangle == nullptr || image == nullptr)
     return;
-    
+
   const Vector3 normal = triangle->getNormal();
-  
+
   const float dot = normal.dot(Vector3::Forward);
-  
+
   if (dot > 0.0f)
     return;
-  
+
   const Vertex* v1 = triangle->getVertex1();
   const Vertex* v2 = triangle->getVertex2();
   const Vertex* v3 = triangle->getVertex3();
-  
+
   int32 v1y = round(v1->y);
   int32 v2y = round(v2->y);
   int32 v3y = round(v3->y);
@@ -109,12 +109,12 @@ DrawTriangle(const opengs::Triangle* triangle, opengs::Image* image) {
     leftPixels[i]   = Vertex(Math::MAX_FLOAT, 0.0f, 0.0f, 0.0f, 0.0f);
     rightPixels[i]  = Vertex(Math::MIN_FLOAT, 0.0f, 0.0f, 0.0f, 0.0f);
   }
-  
+
   auto generatePixels = [&](const Vertex* a, const Vertex* b)
   {
     const int32 ax = round(a->x);
     const int32 bx = round(b->x);
-    
+
     const int32 ay = round(a->y);
     const int32 by = round(b->y);
 
@@ -126,17 +126,17 @@ DrawTriangle(const opengs::Triangle* triangle, opengs::Image* image) {
 
     for (uint32 i = 0; i < steps; i++) {
       const float t = (float)i / (float)steps;
-      
+
       const Vertex v = Math::lerp(*a, *b, t);
-      
+
       const int32 y = round(v.y);
-      
+
       if (y >= minY && y <= maxY) {
         const uint32 index = y - minY;
-        
+
         if (v.x < leftPixels[index].x)
           leftPixels[index] = v;
-        
+
         if (v.x > rightPixels[index].x)
           rightPixels[index] = v;
       }
@@ -149,13 +149,13 @@ DrawTriangle(const opengs::Triangle* triangle, opengs::Image* image) {
 
   for (uint32 y = minY; y <= maxY; y++) {
     const uint32 index = y - minY;
-    
+
     const Vertex& left = leftPixels[index];
     const Vertex& right = rightPixels[index];
-    
+
     const uint32 xStart = round(left.x);
     const uint32 xEnd = round(right.x);
-    
+
     for (uint32 x = xStart; x <= xEnd; x++) {
       const float t = (float)(x - xStart) / (float)(xEnd - xStart);
       const Vertex v = Math::lerp(left, right, t);
@@ -175,7 +175,7 @@ rotateVertex(const opengs::Vertex& v,
              float cz) {
   using namespace opengs;
   opengs::Vertex result = v;
-  
+
   result.x -= cx;
   result.y -= cy;
   result.z -= cz;
@@ -200,7 +200,7 @@ rotateVertex(const opengs::Vertex& v,
   y = result.x * sinZ + result.y * cosZ;
   result.x = x;
   result.y = y;
-  
+
   result.x += cx;
   result.y += cy;
   result.z += cz;
@@ -215,9 +215,9 @@ rotateVertex(const opengs::Vertex& v,
 SDL_AppResult
 SDL_AppInit(void **appstate, int argc, char *argv[]) {
   std::cout << "Executing " << APP_NAME << " from path: " << argv[0] << std::endl;
-  
+
   std::cout << APP_NAME << " version: " << APP_VERSION_MAJOR << "." << APP_VERSION_MINOR << std::endl;
-  
+
   std::cout << "SDL version: "
             << SDL_MAJOR_VERSION << "."
             << SDL_MINOR_VERSION << "."
@@ -242,7 +242,7 @@ SDL_AppInit(void **appstate, int argc, char *argv[]) {
                               SDL_TEXTUREACCESS_STREAMING,
                               WINDOW_WIDTH,
                               WINDOW_HEIGHT);
-  
+
   if (!texture) {
     std::cout << "Couldn't create streaming texture: " << SDL_GetError() << std::endl;
     return SDL_APP_FAILURE;
@@ -258,28 +258,79 @@ SDL_AppInit(void **appstate, int argc, char *argv[]) {
   result = CubeFaceFront->load("Assets/Textures/TitanCameraMan.bmp");
   if (result < 0)
     std::cout << "Couldn't load TitanCameraMan image error code: " << result << std::endl;
-    
+
   result = CubeFaceLeft->load("Assets/Textures/TitanSpeakerMan.bmp");
   if (result < 0)
     std::cout << "Couldn't load TitanSpeakerMan image error code: " << result << std::endl;
-    
+
   result = CubeFaceTop->load("Assets/Textures/TitanTVMan.bmp");
   if (result < 0)
     std::cout << "Couldn't load TitanTVMan image error code: " << result << std::endl;
-  
-  vertices.resize(4);
+
+  vertices.resize(24);
   // Front Face
-  {  
-    vertices[0] = opengs::Vertex( 590.0f, 310.0f, 50.0f, 0.0f, 0.0f); // Front Bottom Left
-    vertices[1] = opengs::Vertex( 590.0f, 410.0f, 50.0f, 0.0f, 1.0f); // Front Top    Left
-    vertices[2] = opengs::Vertex( 690.0f, 310.0f, 50.0f, 1.0f, 0.0f); // Front Bottom Right
-    vertices[3] = opengs::Vertex( 690.0f, 410.0f, 50.0f, 1.0f, 1.0f); // Front Top    Right
+  {
+    vertices[0] = opengs::Vertex( 590.0f, 310.0f,  50.0f, 0.0f, 0.0f);
+    vertices[1] = opengs::Vertex( 590.0f, 410.0f,  50.0f, 0.0f, 1.0f);
+    vertices[2] = opengs::Vertex( 690.0f, 310.0f,  50.0f, 1.0f, 0.0f);
+    vertices[3] = opengs::Vertex( 690.0f, 410.0f,  50.0f, 1.0f, 1.0f);
+  }
+  // Right Face
+  {
+    vertices[4] = opengs::Vertex( 690.0f, 310.0f,  50.0f, 0.0f, 0.0f);
+    vertices[5] = opengs::Vertex( 690.0f, 410.0f,  50.0f, 0.0f, 1.0f);
+    vertices[6] = opengs::Vertex( 690.0f, 310.0f, -50.0f, 1.0f, 0.0f);
+    vertices[7] = opengs::Vertex( 690.0f, 410.0f, -50.0f, 1.0f, 1.0f);
+  }
+  // Back Face
+  {
+    vertices[ 8] = opengs::Vertex( 690.0f, 310.0f, -50.0f, 0.0f, 0.0f);
+    vertices[ 9] = opengs::Vertex( 690.0f, 410.0f, -50.0f, 0.0f, 1.0f);
+    vertices[10] = opengs::Vertex( 590.0f, 310.0f, -50.0f, 1.0f, 0.0f);
+    vertices[11] = opengs::Vertex( 590.0f, 410.0f, -50.0f, 1.0f, 1.0f);
+  }
+  // Left Face
+  {
+    vertices[12] = opengs::Vertex( 590.0f, 310.0f, -50.0f, 0.0f, 0.0f);
+    vertices[13] = opengs::Vertex( 590.0f, 410.0f, -50.0f, 0.0f, 1.0f);
+    vertices[14] = opengs::Vertex( 590.0f, 310.0f,  50.0f, 1.0f, 0.0f);
+    vertices[15] = opengs::Vertex( 590.0f, 410.0f,  50.0f, 1.0f, 1.0f);
+  }
+  // Top Face
+  {
+    vertices[16] = opengs::Vertex( 590.0f, 410.0f,  50.0f, 0.0f, 0.0f);
+    vertices[17] = opengs::Vertex( 590.0f, 410.0f, -50.0f, 0.0f, 1.0f);
+    vertices[18] = opengs::Vertex( 690.0f, 410.0f,  50.0f, 1.0f, 0.0f);
+    vertices[19] = opengs::Vertex( 690.0f, 410.0f, -50.0f, 1.0f, 1.0f);
+  }
+  // bottom Face
+  {
+    vertices[20] = opengs::Vertex( 590.0f, 310.0f, -50.0f, 0.0f, 0.0f);
+    vertices[21] = opengs::Vertex( 590.0f, 310.0f,  50.0f, 0.0f, 1.0f);
+    vertices[22] = opengs::Vertex( 690.0f, 310.0f, -50.0f, 1.0f, 0.0f);
+    vertices[23] = opengs::Vertex( 690.0f, 310.0f,  50.0f, 1.0f, 1.0f);
   }
 
-  triangles.resize(2);
-  triangles[0] = opengs::Triangle(&vertices[0], &vertices[1], &vertices[2]); 
-  triangles[1] = opengs::Triangle(&vertices[3], &vertices[2], &vertices[1]); 
-  
+  triangles.resize(12);
+  // Front Face
+  triangles[ 0] = opengs::Triangle(&vertices[0], &vertices[1], &vertices[2]);
+  triangles[ 1] = opengs::Triangle(&vertices[3], &vertices[2], &vertices[1]);
+  // Right Face
+  triangles[ 2] = opengs::Triangle(&vertices[4], &vertices[5], &vertices[6]);
+  triangles[ 3] = opengs::Triangle(&vertices[7], &vertices[6], &vertices[5]);
+  // Back Face
+  triangles[ 4] = opengs::Triangle(&vertices[ 8], &vertices[ 9], &vertices[10]);
+  triangles[ 5] = opengs::Triangle(&vertices[11], &vertices[10], &vertices[ 9]);
+  // Left Face
+  triangles[ 6] = opengs::Triangle(&vertices[12], &vertices[13], &vertices[14]);
+  triangles[ 7] = opengs::Triangle(&vertices[15], &vertices[14], &vertices[13]);
+  // Top Face
+  triangles[ 8] = opengs::Triangle(&vertices[16], &vertices[17], &vertices[18]);
+  triangles[ 9] = opengs::Triangle(&vertices[19], &vertices[18], &vertices[17]);
+  // Bottom Face
+  triangles[10] = opengs::Triangle(&vertices[20], &vertices[21], &vertices[22]);
+  triangles[11] = opengs::Triangle(&vertices[23], &vertices[22], &vertices[21]);
+
   return SDL_APP_CONTINUE;
 }
 
@@ -301,22 +352,26 @@ SDL_AppEvent(void *appstate, SDL_Event *event) {
 SDL_AppResult
 SDL_AppIterate(void *appstate) {
   const double now = ((double)SDL_GetTicks()) / 1000.0;
-  
+
+  const double nowX = now * 0.25f;
+  const double nowY = now * 0.60f;
+  const double nowZ = now * 1.05f;
+
   const float red   = (float) (0.5 + 0.5 * SDL_sin(now));
   const float green = (float) (0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 2 / 3));
   const float blue  = (float) (0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 4 / 3));
-  
+
   SDL_SetRenderDrawColorFloat(renderer, 0.0f, 0.0f, 0.0f, SDL_ALPHA_OPAQUE_FLOAT);
   SDL_RenderClear(renderer);
-  
+
   screenImage->clear(opengs::Color(red, green, blue, 1.0f));
-  
+
   for (const opengs::Triangle& triangle : triangles) {
     opengs::Vertex rotatedVertices[3]
     {
-      rotateVertex(*triangle.getVertex1(), now, now, now, 640.0f, 360.0f, 0.0f),
-      rotateVertex(*triangle.getVertex2(), now, now, now, 640.0f, 360.0f, 0.0f),
-      rotateVertex(*triangle.getVertex3(), now, now, now, 640.0f, 360.0f, 0.0f)
+      rotateVertex(*triangle.getVertex1(), nowX, nowY, nowZ, 640.0f, 360.0f, 0.0f),
+      rotateVertex(*triangle.getVertex2(), nowX, nowY, nowZ, 640.0f, 360.0f, 0.0f),
+      rotateVertex(*triangle.getVertex3(), nowX, nowY, nowZ, 640.0f, 360.0f, 0.0f)
     };
 
     const opengs::Triangle roatedTriangle(&rotatedVertices[0],
@@ -337,20 +392,20 @@ SDL_AppIterate(void *appstate) {
 
     SDL_UnlockTexture(texture);
   }
-  
+
   SDL_RenderTexture(renderer, texture, nullptr, nullptr);
-  
+
   SDL_RenderPresent(renderer);
-  
+
   return SDL_APP_CONTINUE;
 }
 
 void
 SDL_AppQuit(void *appstate, SDL_AppResult result) {
   // SDL will clean up the window/renderer for us.
-  
+
   SDL_DestroyTexture(texture);
-  
+
   if (screenImage != nullptr)
     delete screenImage;
 
