@@ -273,12 +273,24 @@ SDL_AppInit(void **appstate, int argc, char *argv[]) {
   if (result < 0)
     std::cout << "Couldn't load TitanTVMan image error code: " << result << std::endl;
 
+    result = CubeFaceImages[3].load("Assets/Textures/SkibidiToilet.bmp");
+    if (result < 0)
+      std::cout << "Couldn't load SkibidiToilet image error code: " << result << std::endl;
+  
+    result = CubeFaceImages[4].load("Assets/Textures/SkibidiGMan.bmp");
+    if (result < 0)
+      std::cout << "Couldn't load SkibidiGMan image error code: " << result << std::endl;
+  
+    result = CubeFaceImages[5].load("Assets/Textures/SkibidiAstro.bmp");
+    if (result < 0)
+      std::cout << "Couldn't load SkibidiAstro image error code: " << result << std::endl;
+
   CubeFaceTextures[0].setImage(&CubeFaceImages[0]);
   CubeFaceTextures[1].setImage(&CubeFaceImages[1]);
   CubeFaceTextures[2].setImage(&CubeFaceImages[2]);
-  CubeFaceTextures[3].setImage(&CubeFaceImages[0]);
-  CubeFaceTextures[4].setImage(&CubeFaceImages[1]);
-  CubeFaceTextures[5].setImage(&CubeFaceImages[2]);
+  CubeFaceTextures[3].setImage(&CubeFaceImages[3]);
+  CubeFaceTextures[4].setImage(&CubeFaceImages[4]);
+  CubeFaceTextures[5].setImage(&CubeFaceImages[5]);
 
   vertices.resize(24);
   // Front Face
