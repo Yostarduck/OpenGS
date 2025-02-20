@@ -17,6 +17,8 @@ namespace opengs
  * https://learn.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapinfoheader
  */
 
+#pragma pack(push, 1)
+
 struct BMPHeader {
   uint16 type{ 0x4D42 };
   uint32 size{ 0 };
@@ -38,6 +40,8 @@ struct BMPInfo {
   uint32  colorsUsed{ 0 };
   uint32  colorsImportant{ 0 };
 };
+
+#pragma pack(pop)
 
 class Image
 {

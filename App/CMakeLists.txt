@@ -8,7 +8,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AppConfig.h.in
 
 add_executable(App
                source/main.cpp
-               source/Image.cpp)
+               source/Image.cpp
+               source/Texture.cpp)
 
 target_link_libraries(App PRIVATE
                       SDL3::SDL3

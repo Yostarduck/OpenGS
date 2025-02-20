@@ -160,6 +160,12 @@ struct MATH_API Math
   abs(const T A) {
     return (A >= static_cast<T>(0)) ? A : -A;
   }
+
+  template<class T>
+  static T
+  mod(T value, T divisor) {
+    return value % divisor;
+  }
   
   template<class T>
   static T
@@ -205,6 +211,12 @@ struct MATH_API Math
   static float
   abs<float>(float value) {
     return std::fabsf(value);
+  }
+  
+  template<>
+  static float
+  mod(float value, float divisor) {
+    return std::fmodf(value, divisor);
   }
 };
 

@@ -16,6 +16,7 @@
 #include "AppConfig.h"
 
 #include "Image.h"
+#include "Texture.h"
 
 static SDL_Window*    window    = nullptr;
 static SDL_Renderer*  renderer  = nullptr;
@@ -23,12 +24,8 @@ static SDL_Texture*   texture   = nullptr;
 
 static opengs::Image* screenImage = nullptr;
 
-static opengs::Image* CubeFaceFront   = nullptr;
-static opengs::Image* CubeFaceLeft    = nullptr;
-static opengs::Image* CubeFaceTop     = nullptr;
-static opengs::Image* CubeFaceBack    = nullptr;
-static opengs::Image* CubeFaceRight   = nullptr;
-static opengs::Image* CubeFaceBottom  = nullptr;
+static std::vector<opengs::Image> CubeFaceImages;
+static std::vector<opengs::Texture> CubeFaceTextures;
 
 static std::vector<opengs::Triangle> triangles;
 static std::vector<opengs::Vertex>   vertices;
@@ -36,7 +33,7 @@ static std::vector<opengs::Vertex>   vertices;
 #pragma region FORWARD_DECLARATIONS
 
 void
-DrawTriangle(opengs::Triangle* triangle, opengs::Image* image);
+DrawTriangle(opengs::Triangle* triangle, opengs::Image* image, opengs::Texture* texture);
 
 opengs::Vertex
 rotateVertex(const opengs::Vertex& v,
@@ -68,7 +65,7 @@ SDL_AppQuit(void *appstate, SDL_AppResult result);
 #pragma region FUNCTIONS
 
 void
-DrawTriangle(const opengs::Triangle* triangle, opengs::Image* image) {
+DrawTriangle(const opengs::Triangle* triangle, opengs::Image* image, opengs::Texture* texture) {
   using namespace opengs;
 
   if (triangle == nullptr || image == nullptr)
@@ -158,9 +155,18 @@ DrawTriangle(const opengs::Triangle* triangle, opengs::Image* image) {
 
     for (uint32 x = xStart; x <= xEnd; x++) {
       const float t = (float)(x - xStart) / (float)(xEnd - xStart);
-      const Vertex v = Math::lerp(left, right, t);
-
-      image->setPixel(x, y, Color(v.u, v.v, 0.0f));
+      const Vertex vertex = Math::lerp(left, right, t);
+      
+      if (texture != nullptr) {
+        const Color c = texture->sample(vertex.u,
+                                        vertex.v,
+                                        opengs::ETextureMode::CLAMP,
+                                        opengs::ESamplerFilter::POINT);
+        image->setPixel(x, y, c);
+      }
+      else {
+        image->setPixel(x, y, Color(vertex.u, vertex.v, 0.0f));
+      }
     }
   }
 }
@@ -249,23 +255,30 @@ SDL_AppInit(void **appstate, int argc, char *argv[]) {
   }
 
   screenImage   = new opengs::Image(WINDOW_WIDTH, WINDOW_HEIGHT);
-  CubeFaceFront = new opengs::Image();
-  CubeFaceLeft  = new opengs::Image();
-  CubeFaceTop   = new opengs::Image();
+  
+  CubeFaceImages.resize(6);
+  CubeFaceTextures.resize(6);
 
-  opengs::uint32 result;
+  opengs::int32 result;
 
-  result = CubeFaceFront->load("Assets/Textures/TitanCameraMan.bmp");
+  result = CubeFaceImages[0].load("Assets/Textures/TitanCameraMan.bmp");
   if (result < 0)
     std::cout << "Couldn't load TitanCameraMan image error code: " << result << std::endl;
 
-  result = CubeFaceLeft->load("Assets/Textures/TitanSpeakerMan.bmp");
+  result = CubeFaceImages[1].load("Assets/Textures/TitanSpeakerMan.bmp");
   if (result < 0)
     std::cout << "Couldn't load TitanSpeakerMan image error code: " << result << std::endl;
 
-  result = CubeFaceTop->load("Assets/Textures/TitanTVMan.bmp");
+  result = CubeFaceImages[2].load("Assets/Textures/TitanTVMan.bmp");
   if (result < 0)
     std::cout << "Couldn't load TitanTVMan image error code: " << result << std::endl;
+
+  CubeFaceTextures[0].setImage(&CubeFaceImages[0]);
+  CubeFaceTextures[1].setImage(&CubeFaceImages[1]);
+  CubeFaceTextures[2].setImage(&CubeFaceImages[2]);
+  CubeFaceTextures[3].setImage(&CubeFaceImages[0]);
+  CubeFaceTextures[4].setImage(&CubeFaceImages[1]);
+  CubeFaceTextures[5].setImage(&CubeFaceImages[2]);
 
   vertices.resize(24);
   // Front Face
@@ -365,7 +378,9 @@ SDL_AppIterate(void *appstate) {
   SDL_RenderClear(renderer);
 
   screenImage->clear(opengs::Color(red, green, blue, 1.0f));
-
+  
+  bool incrementTexture = false;
+  int textureIndex = 0;
   for (const opengs::Triangle& triangle : triangles) {
     opengs::Vertex rotatedVertices[3]
     {
@@ -377,8 +392,13 @@ SDL_AppIterate(void *appstate) {
     const opengs::Triangle roatedTriangle(&rotatedVertices[0],
                                           &rotatedVertices[1],
                                           &rotatedVertices[2]);
+    
+    DrawTriangle(&roatedTriangle, screenImage, &CubeFaceTextures[textureIndex]);
 
-    DrawTriangle(&roatedTriangle, screenImage);
+    if (incrementTexture)
+      textureIndex++;
+    
+    incrementTexture = !incrementTexture;
   }
 
   void* texturePixels = nullptr;
@@ -409,19 +429,12 @@ SDL_AppQuit(void *appstate, SDL_AppResult result) {
   if (screenImage != nullptr)
     delete screenImage;
 
-  if (CubeFaceFront != nullptr)
-    delete CubeFaceFront;
-  if (CubeFaceLeft != nullptr)
-    delete CubeFaceLeft;
-  if (CubeFaceTop != nullptr)
-    delete CubeFaceTop;
-  if (CubeFaceBack != nullptr)
-    delete CubeFaceBack;
-  if (CubeFaceRight != nullptr)
-    delete CubeFaceRight;
-  if (CubeFaceBottom != nullptr)
-    delete CubeFaceBottom;
+  if (!CubeFaceImages.empty())
+    CubeFaceImages.clear();
 
+  if (!CubeFaceTextures.empty())
+    CubeFaceTextures.clear();
+  
   if (!triangles.empty())
     triangles.clear();
   if (!vertices.empty())

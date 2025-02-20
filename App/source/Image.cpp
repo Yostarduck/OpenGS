@@ -137,7 +137,7 @@ Image::load(const char* filename) {
     return -3;
   }
 
-  if (info.bitCount != 24) {
+  if (info.bitCount != (uint16)24) {
     file.close();
     return -4;
   }
@@ -145,35 +145,38 @@ Image::load(const char* filename) {
   if (!m_pixels.empty())
     m_pixels.clear();
   
-  const uint32 bitsPerPixel = info.bitCount;
-  const uint32 bytesPerPixel = bitsPerPixel / 8;
-  const uint32 size = m_width * m_height;
+  const uint32 bitsPerPixel = static_cast<uint32>(info.bitCount);
+  const uint32 bytesPerPixel = static_cast<uint32>(bitsPerPixel / 8u);
   
-  m_width = info.width;
-  m_height = info.height;
-  m_pixels.resize(size);
+  m_width = static_cast<uint32>(info.width);
+  m_height = static_cast<uint32>(info.height);
   
-  uint32 columns = ((m_width * bytesPerPixel) + 3) & ~3;
-  uint32 rows = m_height;
+  m_pixels.resize(m_width * m_height);
   
+  uint32 rowpadding = ((m_width * bytesPerPixel) + 3) & ~3;
+  uint8* rowData = new uint8[rowpadding];
+
   uint8 b, g, r;
-  uint8* rowData = new uint8[columns];
   
   file.seekg(header.dataOffset, std::ios::beg);
 
-  for (uint32 row = 0; row < rows; row++) {
-    file.read(reinterpret_cast<char*>(rowData), columns);
+  for (uint32 row = 0; row < m_height; row++) {
+    file.read(reinterpret_cast<char*>(rowData), rowpadding);
 
-    for (uint32 column = 0; column < columns; column += bytesPerPixel) {
-      b = rowData[column + 0];
-      g = rowData[column + 1];
-      r = rowData[column + 2];
+    for (uint32 column = 0; column < m_width; column++) {
+      uint32 index = bytesPerPixel * column;
+
+      b = rowData[index + 0];
+      g = rowData[index + 1];
+      r = rowData[index + 2];
       
       m_pixels[(row * m_width) + column] = Color(r / 255.0f,
                                                  g / 255.0f,
                                                  b / 255.0f);
     }
   }
+
+  delete[] rowData;
 
   file.close();
 
