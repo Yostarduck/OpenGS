@@ -33,7 +33,7 @@ foreach(OUTPUTCONFIG Debug Release RelWithDebInfo MinSizeRel)
     endforeach()
 endforeach()
 
-add_subdirectory(Vulkan)
+add_subdirectory(Vulkan-Headers)
 add_subdirectory(SDL)
 add_subdirectory(Math)
 add_subdirectory(Graphics)

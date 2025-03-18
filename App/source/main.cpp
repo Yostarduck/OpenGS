@@ -1,456 +1,267 @@
-#define SDL_MAIN_USE_CALLBACKS 1
-#define WINDOW_WIDTH 1280
-#define WINDOW_HEIGHT 720
-
-#include <iostream>
-#include <string>
-#include <vector>
-#include <type_traits>
-
-#include <SDL.h>
-#include <SDL_main.h>
-
-#include <gsMath.h>
-#include <gsTriangle.h>
-
 #include "AppConfig.h"
 
-#include "Image.h"
-#include "Texture.h"
+#include <SDL3/SDL.h>
+#include <vulkan/vulkan.h>
 
-static SDL_Window*    window    = nullptr;
-static SDL_Renderer*  renderer  = nullptr;
-static SDL_Texture*   texture   = nullptr;
+#include <iostream>
+#include <chrono>
+#include <thread>
 
-static opengs::Image* screenImage = nullptr;
+using Clock = std::chrono::steady_clock;
 
-static std::vector<opengs::Image> CubeFaceImages;
-static std::vector<opengs::Texture> CubeFaceTextures;
+bool
+bitflagAnd(const unsigned int flags, const unsigned int bitflag);
 
-static std::vector<opengs::Triangle> triangles;
-static std::vector<opengs::Vertex>   vertices;
+int
+main(int argc, char* argv[]) {
+  std::cout << "Executing " << APP_NAME << " from path: " << argv[0] << std::endl;
+  
+  if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
+    std::cout << "Failed to initialize SDL: " << SDL_GetError() << std::endl;
 
-#pragma region FORWARD_DECLARATIONS
+		return -1;
+	}
+	
+  SDL_Window* window = nullptr;
+  SDL_Renderer* renderer = nullptr;
 
-void
-DrawTriangle(opengs::Triangle* triangle, opengs::Image* image, opengs::Texture* texture);
+  SDL_WindowFlags windowFlags = SDL_WINDOW_RESIZABLE;
+	window = SDL_CreateWindow(APP_NAME, 1280, 720, windowFlags);
+	if (window == nullptr) {
+    std::cout << "Failed to create window: " << SDL_GetError() << std::endl;
 
-opengs::Vertex
-rotateVertex(const opengs::Vertex& v,
-             float angleX,
-             float angleY,
-             float angleZ,
-             float cx,
-             float cy,
-             float cz);
+		return -2;
+	}
 
-#pragma endregion
+  renderer = SDL_CreateRenderer(window, nullptr);
+  if (renderer == nullptr) {
+    std::cout << "Failed to create renderer: " << SDL_GetError() << std::endl;
 
-#pragma region SDL_FORWARD_DECLARATIONS
+    SDL_DestroyWindow(window);
+    SDL_Quit();
 
-SDL_AppResult
-SDL_AppInit(void **appstate, int argc, char *argv[]);
-
-SDL_AppResult
-SDL_AppEvent(void *appstate, SDL_Event *event);
-
-SDL_AppResult
-SDL_AppIterate(void *appstate);
-
-void
-SDL_AppQuit(void *appstate, SDL_AppResult result);
-
-#pragma endregion
-
-#pragma region FUNCTIONS
-
-void
-DrawTriangle(const opengs::Triangle* triangle, opengs::Image* image, opengs::Texture* texture) {
-  using namespace opengs;
-
-  if (triangle == nullptr || image == nullptr)
-    return;
-
-  const Vector3 normal = triangle->getNormal();
-
-  const float dot = normal.dot(Vector3::Forward);
-
-  if (dot > 0.0f)
-    return;
-
-  const Vertex* v1 = triangle->getVertex1();
-  const Vertex* v2 = triangle->getVertex2();
-  const Vertex* v3 = triangle->getVertex3();
-
-  int32 v1y = round(v1->y);
-  int32 v2y = round(v2->y);
-  int32 v3y = round(v3->y);
-
-  int32 v1x = round(v1->x);
-  int32 v2x = round(v2->x);
-  int32 v3x = round(v3->x);
-
-  int32 minY = 0;
-  int32 maxY = 0;
-  {
-    minY = Math::min(Math::min(v1y, v2y), v3y);
-    maxY = Math::max(Math::max(v1y, v2y), v3y);
+    return -3;
   }
 
-  uint32 verticalPixels = (maxY - minY) + 1;
+  VkStructureType sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
-  std::vector<Vertex> leftPixels(verticalPixels);
-  std::vector<Vertex> rightPixels(verticalPixels);
-
-  for (uint32 i = 0; i < verticalPixels; i++) {
-    leftPixels[i]   = Vertex(Math::MAX_FLOAT, 0.0f, 0.0f, 0.0f, 0.0f);
-    rightPixels[i]  = Vertex(Math::MIN_FLOAT, 0.0f, 0.0f, 0.0f, 0.0f);
-  }
-
-  auto generatePixels = [&](const Vertex* a, const Vertex* b)
-  {
-    const int32 ax = round(a->x);
-    const int32 bx = round(b->x);
-
-    const int32 ay = round(a->y);
-    const int32 by = round(b->y);
-
-    const uint32 width  = Math::max(bx, ax) - Math::min(bx, ax);
-    const uint32 height = Math::max(by, ay) - Math::min(by, ay);
-    const uint32 steps  = Math::max(width, height);
-
-    const float edgeLenght = (b->vector - a->vector).length();
-
-    for (uint32 i = 0; i < steps; i++) {
-      const float t = (float)i / (float)steps;
-
-      const Vertex v = Math::lerp(*a, *b, t);
-
-      const int32 y = round(v.y);
-
-      if (y >= minY && y <= maxY) {
-        const uint32 index = y - minY;
-
-        if (v.x < leftPixels[index].x)
-          leftPixels[index] = v;
-
-        if (v.x > rightPixels[index].x)
-          rightPixels[index] = v;
-      }
-    }
+  VkApplicationInfo appInfo = {
+    VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
+    nullptr,
+    APP_NAME,
+    VK_MAKE_VERSION(1, 0, 0),
+    "No Engine",
+    VK_MAKE_VERSION(1, 0, 0),
+    VK_API_VERSION_1_0
   };
 
-  generatePixels(v1, v2);
-  generatePixels(v2, v3);
-  generatePixels(v3, v1);
+  VkInstanceCreateInfo createInfo = {
+    VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+    nullptr,
+    0,
+    &appInfo,
+    0,
+    nullptr,
+    0,
+    nullptr
+  };
+  
+  VkInstance vulkanInstance;
+  
+  VkDevice vulkanDevice;
 
-  for (uint32 y = minY; y <= maxY; y++) {
-    const uint32 index = y - minY;
+  VkResult createInstanceResult = vkCreateInstance(&createInfo, nullptr, &vulkanInstance);
 
-    const Vertex& left = leftPixels[index];
-    const Vertex& right = rightPixels[index];
+  switch (createInstanceResult) {
+    case VK_SUCCESS:
+      std::cout << "Vulkan instance created successfully" << std::endl;
+      break;
+    case VK_ERROR_OUT_OF_HOST_MEMORY:
+      std::cout << "Vulkan instance creation failed: out of host memory" << std::endl;
+      break;
+    case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+      std::cout << "Vulkan instance creation failed: out of device memory" << std::endl;
+      break;
+    case VK_ERROR_INITIALIZATION_FAILED:
+      std::cout << "Vulkan instance creation failed: initialization failed" << std::endl;
+      break;
+    case VK_ERROR_LAYER_NOT_PRESENT:
+      std::cout << "Vulkan instance creation failed: layer not present" << std::endl;
+      break;
+    case VK_ERROR_EXTENSION_NOT_PRESENT:
+      std::cout << "Vulkan instance creation failed: extension not present" << std::endl;
+      break;
+    case VK_ERROR_INCOMPATIBLE_DRIVER:
+      std::cout << "Vulkan instance creation failed: incompatible driver" << std::endl;
+      break;
+    default:
+      std::cout << "Vulkan instance creation failed: unknown error" << std::endl;
+      break;
+  }
 
-    const uint32 xStart = round(left.x);
-    const uint32 xEnd = round(right.x);
+  if (createInstanceResult == VK_SUCCESS) {
+    unsigned int physicalDeviceCount = 0;
+    VkPhysicalDevice* physicalDevices = nullptr;
 
-    for (uint32 x = xStart; x <= xEnd; x++) {
-      const float t = (float)(x - xStart) / (float)(xEnd - xStart);
-      const Vertex vertex = Math::lerp(left, right, t);
-      
-      if (texture != nullptr) {
-        const Color c = texture->sample(vertex.u,
-                                        vertex.v,
-                                        opengs::ETextureMode::CLAMP,
-                                        opengs::ESamplerFilter::POINT);
-        image->setPixel(x, y, c);
+    VkResult enumeratePhysicalDevicesResult = vkEnumeratePhysicalDevices(vulkanInstance, &physicalDeviceCount, nullptr);
+
+    if (enumeratePhysicalDevicesResult == VK_SUCCESS) {
+      physicalDevices = new VkPhysicalDevice[physicalDeviceCount];
+
+      enumeratePhysicalDevicesResult = vkEnumeratePhysicalDevices(vulkanInstance, &physicalDeviceCount, physicalDevices);
+
+      if (enumeratePhysicalDevicesResult == VK_SUCCESS) {
+        std::cout << "Physical devices enumerated successfully" << std::endl;
       }
       else {
-        image->setPixel(x, y, Color(vertex.u, vertex.v, 0.0f));
+        std::cout << "Failed to enumerate physical devices: " << enumeratePhysicalDevicesResult << std::endl;
       }
+
+      for (unsigned int i = 0; i < physicalDeviceCount; i++) {
+        VkPhysicalDeviceProperties properties;
+        VkPhysicalDeviceMemoryProperties memoryProperties;
+        vkGetPhysicalDeviceProperties(physicalDevices[i], &properties);
+        vkGetPhysicalDeviceMemoryProperties(physicalDevices[i], &memoryProperties);
+
+        std::cout << "Physical device " << i << " properties:" << std::endl;
+        std::cout << "  API version: "          << properties.apiVersion << std::endl;
+        std::cout << "  Driver version: "       << properties.driverVersion << std::endl;
+        std::cout << "  Vendor ID: "            << properties.vendorID << std::endl;
+        std::cout << "  Device ID: "            << properties.deviceID << std::endl;
+        std::cout << "  Device type: "          << properties.deviceType << std::endl;
+        std::cout << "  Device name: "          << properties.deviceName << std::endl;
+        std::cout << "  Pipeline cache UUID: "  << properties.pipelineCacheUUID << std::endl;
+        std::cout << std::endl;
+
+        std::cout << "Physical device " << i << " memory properties:" << std::endl;
+        std::cout << "  Memory heap count: " << memoryProperties.memoryHeapCount << std::endl;
+        for (unsigned int j = 0; j < memoryProperties.memoryHeapCount; j++) {
+          std::cout << "    Memory heap " << j << " size: " << memoryProperties.memoryHeaps[j].size << std::endl;
+          std::cout << "    Memory heap " << j << " flags: " << memoryProperties.memoryHeaps[j].flags << std::endl;
+        }
+        std::cout << "  Memory type count: " << memoryProperties.memoryTypeCount << std::endl;
+        for (unsigned int j = 0; j < memoryProperties.memoryTypeCount; j++) {
+          std::cout << "    Memory type " << j << " heap index: " << memoryProperties.memoryTypes[j].heapIndex << std::endl;
+          std::cout << "    Memory type " << j << " property flags: " << memoryProperties.memoryTypes[j].propertyFlags << std::endl;
+        }
+        std::cout << std::endl;
+
+        unsigned int queueFamilyPropertyCount = 0;
+        VkQueueFamilyProperties* queueFamilyProperties = nullptr;
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[0], &queueFamilyPropertyCount, nullptr);
+
+        queueFamilyProperties = new VkQueueFamilyProperties[queueFamilyPropertyCount];
+        vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[0], &queueFamilyPropertyCount, queueFamilyProperties);
+
+        for (unsigned int j = 0; j < queueFamilyPropertyCount; j++) {
+          std::cout << "Queue family " << i << " properties:" << std::endl;
+          std::cout << "  Queue count: " << queueFamilyProperties[j].queueCount << std::endl;
+          std::cout << "  Queue supports graphics: " << (bitflagAnd(queueFamilyProperties[j].queueFlags, VK_QUEUE_GRAPHICS_BIT) ? "true" : "false") << std::endl;
+          std::cout << "  Queue supports compute: " << (bitflagAnd(queueFamilyProperties[j].queueFlags, VK_QUEUE_COMPUTE_BIT) ? "true" : "false") << std::endl;
+          std::cout << "  Timestamp valid bits: " << queueFamilyProperties[j].timestampValidBits << std::endl;
+          std::cout << "  Min image transfer granularity: " << queueFamilyProperties[j].minImageTransferGranularity.width << "x" << queueFamilyProperties[j].minImageTransferGranularity.height << "x" << queueFamilyProperties[j].minImageTransferGranularity.depth << std::endl;
+          std::cout << std::endl;
+        }
+
+        delete[] queueFamilyProperties;
+      }
+      
+      VkPhysicalDeviceFeatures supportedFeatures;
+      VkPhysicalDeviceFeatures requiredFeatures = {};
+
+      vkGetPhysicalDeviceFeatures(physicalDevices[0], &supportedFeatures);
+
+      requiredFeatures.multiDrawIndirect = supportedFeatures.multiDrawIndirect;
+      requiredFeatures.tessellationShader = VK_TRUE;
+      requiredFeatures.geometryShader = VK_TRUE;
+
+      VkDeviceQueueCreateInfo deviceQueueCreateInfo = {
+        VkStructureType::VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        nullptr,
+        0,
+        0,
+        1,
+        nullptr
+      };
+
+      VkDeviceCreateInfo deviceCreateInfo = {
+        VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        nullptr,
+        0,
+        1,
+        &deviceQueueCreateInfo,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        &requiredFeatures
+      };
+      
+      VkResult createDeviceResult = vkCreateDevice(physicalDevices[0], &deviceCreateInfo, nullptr, &vulkanDevice);
+      
+      delete[] physicalDevices;
     }
-  }
-}
-
-opengs::Vertex
-rotateVertex(const opengs::Vertex& v, 
-             float angleX, 
-             float angleY, 
-             float angleZ, 
-             float cx, 
-             float cy, 
-             float cz) {
-  using namespace opengs;
-  opengs::Vertex result = v;
-
-  result.x -= cx;
-  result.y -= cy;
-  result.z -= cz;
-
-  float cosX = Math::cos(angleX);
-  float sinX = Math::sin(angleX);
-  float y = result.y * cosX - result.z * sinX;
-  float z = result.y * sinX + result.z * cosX;
-  result.y = y;
-  result.z = z;
-
-  float cosY = Math::cos(angleY);
-  float sinY = Math::sin(angleY);
-  float x = result.x * cosY + result.z * sinY;
-  z = -result.x * sinY + result.z * cosY;
-  result.x = x;
-  result.z = z;
-
-  float cosZ = Math::cos(angleZ);
-  float sinZ = Math::sin(angleZ);
-  x = result.x * cosZ - result.y * sinZ;
-  y = result.x * sinZ + result.y * cosZ;
-  result.x = x;
-  result.y = y;
-
-  result.x += cx;
-  result.y += cy;
-  result.z += cz;
-
-  return result;
-}
-
-#pragma endregion
-
-#pragma region SDL_FUNCTIONS
-
-SDL_AppResult
-SDL_AppInit(void **appstate, int argc, char *argv[]) {
-  std::cout << "Executing " << APP_NAME << " from path: " << argv[0] << std::endl;
-
-  std::cout << APP_NAME << " version: " << APP_VERSION_MAJOR << "." << APP_VERSION_MINOR << std::endl;
-
-  std::cout << "SDL version: "
-            << SDL_MAJOR_VERSION << "."
-            << SDL_MINOR_VERSION << "."
-            << SDL_MICRO_VERSION << "."
-            << std::endl;
-
-  std::string appVersion = std::to_string(APP_VERSION_MAJOR) + "." + std::to_string(APP_VERSION_MINOR);
-  SDL_SetAppMetadata(APP_NAME, appVersion.c_str(), "com.yostarduck.app");
-
-  if (!SDL_Init(SDL_INIT_VIDEO)) {
-    std::cout << "Couldn't initialize SDL: " << SDL_GetError() << std::endl;
-    return SDL_APP_FAILURE;
-  }
-
-  if (!SDL_CreateWindowAndRenderer(APP_NAME, WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window, &renderer)) {
-    std::cout << "Couldn't create window/renderer: " << SDL_GetError() << std::endl;
-    return SDL_APP_FAILURE;
-  }
-
-  texture = SDL_CreateTexture(renderer,
-                              SDL_PIXELFORMAT_RGBA128_FLOAT,
-                              SDL_TEXTUREACCESS_STREAMING,
-                              WINDOW_WIDTH,
-                              WINDOW_HEIGHT);
-
-  if (!texture) {
-    std::cout << "Couldn't create streaming texture: " << SDL_GetError() << std::endl;
-    return SDL_APP_FAILURE;
-  }
-
-  screenImage   = new opengs::Image(WINDOW_WIDTH, WINDOW_HEIGHT);
-  
-  CubeFaceImages.resize(6);
-  CubeFaceTextures.resize(6);
-
-  opengs::int32 result;
-
-  result = CubeFaceImages[0].load("Assets/Textures/TitanCameraMan.bmp");
-  if (result < 0)
-    std::cout << "Couldn't load TitanCameraMan image error code: " << result << std::endl;
-
-  result = CubeFaceImages[1].load("Assets/Textures/TitanSpeakerMan.bmp");
-  if (result < 0)
-    std::cout << "Couldn't load TitanSpeakerMan image error code: " << result << std::endl;
-
-  result = CubeFaceImages[2].load("Assets/Textures/TitanTVMan.bmp");
-  if (result < 0)
-    std::cout << "Couldn't load TitanTVMan image error code: " << result << std::endl;
-
-    result = CubeFaceImages[3].load("Assets/Textures/SkibidiToilet.bmp");
-    if (result < 0)
-      std::cout << "Couldn't load SkibidiToilet image error code: " << result << std::endl;
-  
-    result = CubeFaceImages[4].load("Assets/Textures/SkibidiGMan.bmp");
-    if (result < 0)
-      std::cout << "Couldn't load SkibidiGMan image error code: " << result << std::endl;
-  
-    result = CubeFaceImages[5].load("Assets/Textures/SkibidiAstro.bmp");
-    if (result < 0)
-      std::cout << "Couldn't load SkibidiAstro image error code: " << result << std::endl;
-
-  CubeFaceTextures[0].setImage(&CubeFaceImages[0]);
-  CubeFaceTextures[1].setImage(&CubeFaceImages[1]);
-  CubeFaceTextures[2].setImage(&CubeFaceImages[2]);
-  CubeFaceTextures[3].setImage(&CubeFaceImages[3]);
-  CubeFaceTextures[4].setImage(&CubeFaceImages[4]);
-  CubeFaceTextures[5].setImage(&CubeFaceImages[5]);
-
-  vertices.resize(24);
-  // Front Face
-  {
-    vertices[0] = opengs::Vertex( 590.0f, 310.0f,  50.0f, 0.0f, 0.0f);
-    vertices[1] = opengs::Vertex( 590.0f, 410.0f,  50.0f, 0.0f, 1.0f);
-    vertices[2] = opengs::Vertex( 690.0f, 310.0f,  50.0f, 1.0f, 0.0f);
-    vertices[3] = opengs::Vertex( 690.0f, 410.0f,  50.0f, 1.0f, 1.0f);
-  }
-  // Right Face
-  {
-    vertices[4] = opengs::Vertex( 690.0f, 310.0f,  50.0f, 0.0f, 0.0f);
-    vertices[5] = opengs::Vertex( 690.0f, 410.0f,  50.0f, 0.0f, 1.0f);
-    vertices[6] = opengs::Vertex( 690.0f, 310.0f, -50.0f, 1.0f, 0.0f);
-    vertices[7] = opengs::Vertex( 690.0f, 410.0f, -50.0f, 1.0f, 1.0f);
-  }
-  // Back Face
-  {
-    vertices[ 8] = opengs::Vertex( 690.0f, 310.0f, -50.0f, 0.0f, 0.0f);
-    vertices[ 9] = opengs::Vertex( 690.0f, 410.0f, -50.0f, 0.0f, 1.0f);
-    vertices[10] = opengs::Vertex( 590.0f, 310.0f, -50.0f, 1.0f, 0.0f);
-    vertices[11] = opengs::Vertex( 590.0f, 410.0f, -50.0f, 1.0f, 1.0f);
-  }
-  // Left Face
-  {
-    vertices[12] = opengs::Vertex( 590.0f, 310.0f, -50.0f, 0.0f, 0.0f);
-    vertices[13] = opengs::Vertex( 590.0f, 410.0f, -50.0f, 0.0f, 1.0f);
-    vertices[14] = opengs::Vertex( 590.0f, 310.0f,  50.0f, 1.0f, 0.0f);
-    vertices[15] = opengs::Vertex( 590.0f, 410.0f,  50.0f, 1.0f, 1.0f);
-  }
-  // Top Face
-  {
-    vertices[16] = opengs::Vertex( 590.0f, 410.0f,  50.0f, 0.0f, 0.0f);
-    vertices[17] = opengs::Vertex( 590.0f, 410.0f, -50.0f, 0.0f, 1.0f);
-    vertices[18] = opengs::Vertex( 690.0f, 410.0f,  50.0f, 1.0f, 0.0f);
-    vertices[19] = opengs::Vertex( 690.0f, 410.0f, -50.0f, 1.0f, 1.0f);
-  }
-  // bottom Face
-  {
-    vertices[20] = opengs::Vertex( 590.0f, 310.0f, -50.0f, 0.0f, 0.0f);
-    vertices[21] = opengs::Vertex( 590.0f, 310.0f,  50.0f, 0.0f, 1.0f);
-    vertices[22] = opengs::Vertex( 690.0f, 310.0f, -50.0f, 1.0f, 0.0f);
-    vertices[23] = opengs::Vertex( 690.0f, 310.0f,  50.0f, 1.0f, 1.0f);
-  }
-
-  triangles.resize(12);
-  // Front Face
-  triangles[ 0] = opengs::Triangle(&vertices[0], &vertices[1], &vertices[2]);
-  triangles[ 1] = opengs::Triangle(&vertices[3], &vertices[2], &vertices[1]);
-  // Right Face
-  triangles[ 2] = opengs::Triangle(&vertices[4], &vertices[5], &vertices[6]);
-  triangles[ 3] = opengs::Triangle(&vertices[7], &vertices[6], &vertices[5]);
-  // Back Face
-  triangles[ 4] = opengs::Triangle(&vertices[ 8], &vertices[ 9], &vertices[10]);
-  triangles[ 5] = opengs::Triangle(&vertices[11], &vertices[10], &vertices[ 9]);
-  // Left Face
-  triangles[ 6] = opengs::Triangle(&vertices[12], &vertices[13], &vertices[14]);
-  triangles[ 7] = opengs::Triangle(&vertices[15], &vertices[14], &vertices[13]);
-  // Top Face
-  triangles[ 8] = opengs::Triangle(&vertices[16], &vertices[17], &vertices[18]);
-  triangles[ 9] = opengs::Triangle(&vertices[19], &vertices[18], &vertices[17]);
-  // Bottom Face
-  triangles[10] = opengs::Triangle(&vertices[20], &vertices[21], &vertices[22]);
-  triangles[11] = opengs::Triangle(&vertices[23], &vertices[22], &vertices[21]);
-
-  return SDL_APP_CONTINUE;
-}
-
-SDL_AppResult
-SDL_AppEvent(void *appstate, SDL_Event *event) {
-  if (event->type == SDL_EVENT_QUIT) {
-    return SDL_APP_SUCCESS;
-  }
-
-  if (event->type == SDL_EVENT_KEY_DOWN) {
-    if (event->key.which == SDLK_ESCAPE) {
-      return SDL_APP_SUCCESS;
+    else {
+      std::cout << "Failed to enumerate physical devices: " << enumeratePhysicalDevicesResult << std::endl;
     }
   }
 
-  return SDL_APP_CONTINUE;
-}
-
-SDL_AppResult
-SDL_AppIterate(void *appstate) {
-  const double now = ((double)SDL_GetTicks()) / 1000.0;
-
-  const double nowX = now * 0.25f;
-  const double nowY = now * 0.60f;
-  const double nowZ = now * 1.05f;
-
-  const float red   = (float) (0.5 + 0.5 * SDL_sin(now));
-  const float green = (float) (0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 2 / 3));
-  const float blue  = (float) (0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 4 / 3));
-
-  SDL_SetRenderDrawColorFloat(renderer, 0.0f, 0.0f, 0.0f, SDL_ALPHA_OPAQUE_FLOAT);
-  SDL_RenderClear(renderer);
-
-  screenImage->clear(opengs::Color(red, green, blue, 1.0f));
+	bool quit = createInstanceResult != VK_SUCCESS;
   
-  bool incrementTexture = false;
-  int textureIndex = 0;
-  for (const opengs::Triangle& triangle : triangles) {
-    opengs::Vertex rotatedVertices[3]
-    {
-      rotateVertex(*triangle.getVertex1(), nowX, nowY, nowZ, 640.0f, 360.0f, 0.0f),
-      rotateVertex(*triangle.getVertex2(), nowX, nowY, nowZ, 640.0f, 360.0f, 0.0f),
-      rotateVertex(*triangle.getVertex3(), nowX, nowY, nowZ, 640.0f, 360.0f, 0.0f)
-    };
+  std::chrono::time_point<Clock> lastTime = Clock::now();
+  std::chrono::time_point<Clock> newTime;
+  std::chrono::milliseconds deltaTime;
 
-    const opengs::Triangle roatedTriangle(&rotatedVertices[0],
-                                          &rotatedVertices[1],
-                                          &rotatedVertices[2]);
-    
-    DrawTriangle(&roatedTriangle, screenImage, &CubeFaceTextures[textureIndex]);
+  int fps = 60;
+  std::chrono::milliseconds msPerFrame(1000 / fps);
 
-    if (incrementTexture)
-      textureIndex++;
+  while (!quit) {
+		SDL_Event evt;
+
+		while (SDL_PollEvent(&evt)) {
+			if (evt.type == SDL_EVENT_QUIT) {
+				quit = true;
+			}
+			else if (evt.type == SDL_EVENT_KEY_DOWN) {
+				if (evt.key.key == SDLK_ESCAPE) {
+          quit = true;
+        }
+			}
+		}
+
+		if (quit) {
+			break;
+		}
+
+    SDL_SetRenderDrawColorFloat(renderer, 0.0f, 0.0f, 0.0f, SDL_ALPHA_OPAQUE_FLOAT);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
     
-    incrementTexture = !incrementTexture;
+    newTime = Clock::now();
+    deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(newTime - lastTime);
+    lastTime = newTime;
+
+    std::chrono::milliseconds remainingTime = msPerFrame - deltaTime;
+    if (remainingTime.count() > 0) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(remainingTime.count()));
+    }
+	}
+
+  SDL_DestroyWindow(window);
+  SDL_Quit();
+
+  if (vulkanDevice) {
+    vkDestroyDevice(vulkanDevice, nullptr);
   }
 
-  void* texturePixels = nullptr;
-  opengs::int32 pitch = 0;
-  if (SDL_LockTexture(texture, NULL, &texturePixels, &pitch)) {
-    const opengs::Color* source = screenImage->getPixels();
-    opengs::Color* target = reinterpret_cast<opengs::Color*>(texturePixels);
-
-    for (opengs::int32 i = 0; i < WINDOW_WIDTH * WINDOW_HEIGHT; i++)
-      target[i] = source[i];
-
-    SDL_UnlockTexture(texture);
+  if (vulkanInstance) {
+    vkDestroyInstance(vulkanInstance, nullptr);
   }
-
-  SDL_RenderTexture(renderer, texture, nullptr, nullptr);
-
-  SDL_RenderPresent(renderer);
-
-  return SDL_APP_CONTINUE;
-}
-
-void
-SDL_AppQuit(void *appstate, SDL_AppResult result) {
-  // SDL will clean up the window/renderer for us.
-
-  SDL_DestroyTexture(texture);
-
-  if (screenImage != nullptr)
-    delete screenImage;
-
-  if (!CubeFaceImages.empty())
-    CubeFaceImages.clear();
-
-  if (!CubeFaceTextures.empty())
-    CubeFaceTextures.clear();
   
-  if (!triangles.empty())
-    triangles.clear();
-  if (!vertices.empty())
-    vertices.clear();
+  return 0;
 }
 
-#pragma endregion
+bool
+bitflagAnd(const unsigned int flags, const unsigned int bitflag) {
+  return (flags & bitflag) == bitflag;
+}
